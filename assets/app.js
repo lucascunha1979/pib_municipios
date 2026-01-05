@@ -166,7 +166,6 @@ function fillYears(selectEl, years) {
 function fillMunicipios(selectEl, varName, serieName) {
   // popula municípios que têm dados nessa combinação
   const key = buildKey(varName, serieName);
-  const years = state.comboYears.get(key) || [];
   const set = new Map(); // muni -> code
 
   for (const d of state.records) {
@@ -185,13 +184,13 @@ function fillMunicipios(selectEl, varName, serieName) {
 }
 
 /* =========================
-   PANORAMA: Map
+   PANORAMA: Map  (CORRIGIDO)
 ========================= */
 function renderMap(varName, serieName) {
   const key = buildKey(varName, serieName);
   const years = state.comboYears.get(key) || [];
   if (!years.length) {
-    Plotly.newPlot("divMap", [], {title: "Sem dados"});
+    Plotly.newPlot("divMap", [], { title: "Sem dados" });
     return;
   }
 
@@ -201,11 +200,23 @@ function renderMap(varName, serieName) {
   const y0 = years[0];
   const z0 = byYear.get(y0);
 
+  const ann = (y) => ([{
+    text: `Ano: <b>${y}</b>`,
+    x: 0.99, y: 0.99,
+    xref: "paper", yref: "paper",
+    xanchor: "right", yanchor: "top",
+    showarrow: false,
+    bgcolor: "rgba(255,255,255,0.75)",
+    bordercolor: "rgba(0,0,0,0.20)",
+    borderwidth: 1,
+    font: { size: 12 }
+  }]);
+
   const frames = years.map((y) => {
     const z = byYear.get(y);
 
     // escala por ano (p05–p95) p/ contraste
-    const vals = z.filter(v => v != null && isFinite(v)).slice().sort((a,b)=>a-b);
+    const vals = z.filter(v => v != null && isFinite(v)).slice().sort((a, b) => a - b);
     let cmin = quantile(vals, 0.05);
     let cmax = quantile(vals, 0.95);
     if (cmin == null || cmax == null) { cmin = 0; cmax = 1; }
@@ -215,14 +226,11 @@ function renderMap(varName, serieName) {
       name: String(y),
       data: [{
         z,
-        hovertemplate:
-          "<b>%{text}</b><br>" +
-          "Ano: " + y + "<br>" +
-          "Valor: R$ %{z:,.0f}<extra></extra>"
+        meta: y
       }],
       layout: {
-        title: `RS — ${varName} (${serieName}) — Ano: ${y}`,
-        coloraxis: {cmin, cmax}
+        coloraxis: { cmin, cmax },
+        annotations: ann(y)
       }
     };
   });
@@ -234,23 +242,30 @@ function renderMap(varName, serieName) {
     locations: state.codes,
     z: z0,
     text: state.names,
+    meta: y0,
     coloraxis: "coloraxis",
     hovertemplate:
       "<b>%{text}</b><br>" +
-      "Ano: " + y0 + "<br>" +
+      "Ano: %{meta}<br>" +
       "Valor: R$ %{z:,.0f}<extra></extra>"
   };
 
   const layout = {
-    title: `RS — ${varName} (${serieName}) — Ano: ${y0}`,
+    title: {
+      text: `RS — ${varName} (${serieName})`,
+      x: 0.02, xanchor: "left",
+      font: { size: 14 }
+    },
     height: 520,
-    margin: {l: 10, r: 10, t: 50, b: 0},
+    // mais espaço no topo (título não invade o mapa)
+    margin: { l: 10, r: 10, t: 88, b: 0 },
     separators: ".,",
-    geo: {fitbounds: "locations", visible: false},
+    geo: { fitbounds: "locations", visible: false },
     coloraxis: {
       colorscale: "Viridis",
-      colorbar: {title: "R$ (escala por ano: p05–p95)"}
+      colorbar: { title: "R$ (escala por ano: p05–p95)" }
     },
+    annotations: ann(y0),
     updatemenus: [{
       type: "buttons",
       direction: "left",
@@ -261,12 +276,12 @@ function renderMap(varName, serieName) {
         {
           label: "Play",
           method: "animate",
-          args: [null, {fromcurrent: true, frame: {duration: 700, redraw: true}, transition: {duration: 0}}]
+          args: [null, { fromcurrent: true, frame: { duration: 700, redraw: true }, transition: { duration: 0 } }]
         },
         {
           label: "Pause",
           method: "animate",
-          args: [[null], {mode: "immediate", frame: {duration: 0, redraw: false}, transition: {duration: 0}}]
+          args: [[null], { mode: "immediate", frame: { duration: 0, redraw: false }, transition: { duration: 0 } }]
         }
       ]
     }],
@@ -274,28 +289,28 @@ function renderMap(varName, serieName) {
       active: 0,
       x: 0.20, y: 0.02, len: 0.78,
       xanchor: "left", yanchor: "bottom",
-      currentvalue: {prefix: "Ano: "},
-      steps: years.map((y)=>({
+      currentvalue: { prefix: "Ano: " },
+      steps: years.map((y) => ({
         label: String(y),
         method: "animate",
-        args: [[String(y)], {mode: "immediate", frame: {duration: 0, redraw: true}, transition: {duration: 0}}]
+        args: [[String(y)], { mode: "immediate", frame: { duration: 0, redraw: true }, transition: { duration: 0 } }]
       }))
     }]
   };
 
-  Plotly.newPlot("divMap", [trace], layout, {displayModeBar: true}).then((gd) => {
+  Plotly.newPlot("divMap", [trace], layout, { displayModeBar: true }).then((gd) => {
     Plotly.addFrames(gd, frames);
   });
 }
 
 /* =========================
-   PANORAMA: Bar chart race
+   PANORAMA: Bar chart race (CORRIGIDO)
 ========================= */
 function renderRace(varName, serieName, topN) {
   const key = buildKey(varName, serieName);
   const years = state.comboYears.get(key) || [];
   if (!years.length) {
-    Plotly.newPlot("divRace", [], {title: "Sem dados"});
+    Plotly.newPlot("divRace", [], { title: "Sem dados" });
     return;
   }
 
@@ -304,48 +319,93 @@ function renderRace(varName, serieName, topN) {
   function topForYear(y) {
     const z = byYear.get(y);
     const items = [];
-    for (let i=0; i<z.length; i++) {
+    for (let i = 0; i < z.length; i++) {
       const v = z[i];
       if (v == null || !isFinite(v)) continue;
-      items.push({idx: i, code: state.codes[i], name: state.names[i], val: v});
+      items.push({ idx: i, code: state.codes[i], name: state.names[i], val: v });
     }
-    items.sort((a,b)=>b.val-a.val);
+    items.sort((a, b) => b.val - a.val);
     return items.slice(0, topN);
   }
 
+  // FIX: range X fixo (não re-escala ao longo do tempo -> não desloca)
+  let globalMax = 0;
+  for (const y of years) {
+    const z = byYear.get(y);
+    for (const v of z) {
+      if (v != null && isFinite(v) && v > globalMax) globalMax = v;
+    }
+  }
+  if (!globalMax || !isFinite(globalMax)) globalMax = 1;
+  const xMax = globalMax * 1.05;
+
   const y0 = years[0];
-  const top0 = topForYear(y0).reverse(); // reverse p/ barras crescerem “pra cima”
+  const top0 = topForYear(y0).reverse();
+
+  const ann = (y) => ([{
+    text: `Ano: <b>${y}</b>`,
+    x: 0.99, y: 0.98,
+    xref: "paper", yref: "paper",
+    xanchor: "right", yanchor: "top",
+    showarrow: false,
+    bgcolor: "rgba(255,255,255,0.75)",
+    bordercolor: "rgba(0,0,0,0.20)",
+    borderwidth: 1,
+    font: { size: 12 }
+  }]);
 
   const frames = years.map((y) => {
     const top = topForYear(y).reverse();
     return {
       name: String(y),
       data: [{
-        x: top.map(d=>d.val),
-        y: top.map(d=>d.name),
-        customdata: top.map(d=>[d.code]),
-        hovertemplate: "<b>%{y}</b><br>Código: %{customdata[0]}<br>Valor: R$ %{x:,.0f}<extra></extra>"
+        x: top.map(d => d.val),
+        y: top.map(d => d.name),
+        customdata: top.map(d => [d.code]),
+        meta: y
       }],
-      layout: {title: `Top ${topN} — ${varName} (${serieName}) — Ano: ${y}`}
+      layout: {
+        annotations: ann(y)
+      }
     };
   });
 
   const trace = {
     type: "bar",
     orientation: "h",
-    x: top0.map(d=>d.val),
-    y: top0.map(d=>d.name),
-    customdata: top0.map(d=>[d.code]),
-    hovertemplate: "<b>%{y}</b><br>Código: %{customdata[0]}<br>Valor: R$ %{x:,.0f}<extra></extra>"
+    x: top0.map(d => d.val),
+    y: top0.map(d => d.name),
+    customdata: top0.map(d => [d.code]),
+    meta: y0,
+    hovertemplate:
+      "<b>%{y}</b><br>" +
+      "Ano: %{meta}<br>" +
+      "Código: %{customdata[0]}<br>" +
+      "Valor: R$ %{x:,.0f}<extra></extra>"
   };
 
   const layout = {
-    title: `Top ${topN} — ${varName} (${serieName}) — Ano: ${y0}`,
+    title: {
+      text: `Top ${topN} — ${varName} (${serieName})`,
+      x: 0.02, xanchor: "left",
+      font: { size: 14 }
+    },
     height: 520,
-    margin: {l: 10, r: 10, t: 50, b: 35},
+    // FIX: margens fixas (evita reflow/deslocamento)
+    margin: { l: 260, r: 10, t: 78, b: 40 },
     separators: ".,",
-    xaxis: {title: "R$", tickformat: ",.0f"},
-    yaxis: {automargin: true},
+    xaxis: {
+      title: "R$",
+      tickformat: ",.0f",
+      range: [0, xMax],
+      fixedrange: true
+    },
+    yaxis: {
+      automargin: false,
+      fixedrange: true,
+      tickfont: { size: 11 }
+    },
+    annotations: ann(y0),
     updatemenus: [{
       type: "buttons",
       direction: "left",
@@ -353,24 +413,24 @@ function renderRace(varName, serieName, topN) {
       xanchor: "left", yanchor: "bottom",
       showactive: false,
       buttons: [
-        {label:"Play", method:"animate", args:[null, {fromcurrent:true, frame:{duration:650, redraw:true}, transition:{duration:0}}]},
-        {label:"Pause", method:"animate", args:[[null], {mode:"immediate", frame:{duration:0, redraw:false}, transition:{duration:0}}]}
+        { label: "Play", method: "animate", args: [null, { fromcurrent: true, frame: { duration: 650, redraw: true }, transition: { duration: 0 } }] },
+        { label: "Pause", method: "animate", args: [[null], { mode: "immediate", frame: { duration: 0, redraw: false }, transition: { duration: 0 } }] }
       ]
     }],
     sliders: [{
       active: 0,
       x: 0.20, y: 0.02, len: 0.78,
       xanchor: "left", yanchor: "bottom",
-      currentvalue: {prefix: "Ano: "},
+      currentvalue: { prefix: "Ano: " },
       steps: years.map(y => ({
         label: String(y),
         method: "animate",
-        args: [[String(y)], {mode:"immediate", frame:{duration:0, redraw:true}, transition:{duration:0}}]
+        args: [[String(y)], { mode: "immediate", frame: { duration: 0, redraw: true }, transition: { duration: 0 } }]
       }))
     }]
   };
 
-  Plotly.newPlot("divRace", [trace], layout, {displayModeBar:true}).then(gd => {
+  Plotly.newPlot("divRace", [trace], layout, { displayModeBar: true }).then(gd => {
     Plotly.addFrames(gd, frames);
   });
 }
@@ -471,8 +531,6 @@ function renderSeriesChart(varName, serieName, codesSelected, showMeanYear) {
   // média do período (reta): média de todos os pontos (anos x municípios)
   let sumAll=0, nAll=0;
   for (let t=0; t<years.length; t++) {
-    const v = meanYear[t];
-    // não usar meanYear, usar todos municípios
     const arr = byYear.get(years[t]);
     if (!arr) continue;
     for (const idx of muniIdxs) {
@@ -504,7 +562,6 @@ function renderSeriesChart(varName, serieName, codesSelected, showMeanYear) {
   }
 
   // tendência (OLS) da média anual
-  // y = a*x + b
   const xs = [];
   const ys = [];
   for (let i=0; i<years.length; i++) {
@@ -576,7 +633,6 @@ function updateSeriesTable(varName, serieName, codesSelected) {
   // ordenar por ano, muni
   rowsOut.sort((a,b)=> (a.ano-b.ano) || a.muni.localeCompare(b.muni,"pt-BR"));
 
-  // render (limitando a tabela gigante? aqui mostramos tudo mesmo)
   for (const r of rowsOut) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -620,7 +676,7 @@ function downloadWordDoc(filenameBase, title, filters, tableHeaders, tableRows) 
 
   const thead = `<tr>${tableHeaders.map(h=>`<th>${h}</th>`).join("")}</tr>`;
   const tbody = tableRows.map(row =>
-    `<tr>${row.map((cell, j) => {
+    `<tr>${row.map((cell) => {
       const isNum = (typeof cell === "number");
       const txt = isNum ? formatBRL(cell) : String(cell);
       return `<td class="${isNum ? "num" : ""}">${txt}</td>`;
