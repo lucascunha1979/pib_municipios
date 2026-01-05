@@ -1,0 +1,14 @@
+.ctrl { min-width: 260px; }
+.ctrlTall { min-width: 360px; }
+
+.chartBox { height: 520px; }
+.chartBoxTall { height: 620px; }
+
+.chartTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+  margin: 6px 8px 10px;
+}
+
+table td.text-end, table th.text-end { text-align: right; }
